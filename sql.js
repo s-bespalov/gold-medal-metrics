@@ -151,7 +151,16 @@ Returns a SQL query string that will find the number of male medalists.
 */
 
 const numberMenMedalists = country => {
-  return;
+  return `
+    WITH People AS (
+      SELECT DISTINCT name, country, gender
+      FROM GoldMedal
+    )
+
+    SELECT COUNT(*) AS count
+    FROM People
+    WHERE gender = 'Men' AND  country = '${country}'
+  `;
 };
 
 /*
@@ -159,7 +168,16 @@ Returns a SQL query string that will find the number of female medalists.
 */
 
 const numberWomenMedalists = country => {
-  return;
+  return `
+    WITH People AS (
+      SELECT DISTINCT name, country, gender
+      FROM GoldMedal
+    )
+
+    SELECT COUNT(*) AS count
+    FROM People
+    WHERE gender = 'Women' AND  country = '${country}'
+  `;
 };
 
 /*
@@ -167,7 +185,14 @@ Returns a SQL query string that will find the athlete with the most medals.
 */
 
 const mostMedaledAthlete = country => {
-  return;
+  return `
+    SELECT name, COUNT(*) AS count
+    FROM GoldMedal
+    WHERE country = '${country}'
+    GROUP BY name
+    ORDER BY count DESC
+    LIMIT 1;
+  `;
 };
 
 /*
@@ -176,7 +201,19 @@ optionally ordered by the given field in the specified direction.
 */
 
 const orderedMedals = (country, field, sortAscending) => {
-  return;
+  let query = `
+    SELECT *
+    FROM GoldMedal
+    WHERE country = '${country}'
+  `;
+
+  if (field) {
+    const direction = sortAscending ? '' : 'DESC';
+    query += `ORDER BY ${field} ${direction}`;
+  }
+
+  query += ';';
+  return query;
 };
 
 /*
@@ -187,7 +224,25 @@ aliased as 'percent'. Optionally ordered by the given field in the specified dir
 */
 
 const orderedSports = (country, field, sortAscending) => {
-  return;
+  const orderby = field ? 'ORDER BY ' + field +
+    (sortAscending ? '' : ' DESC') : '';
+  const query = `
+    WITH Allmedals AS (
+      SELECT country, COUNT(*) AS total_medals
+      FROM GoldMedal
+      GROUP BY country
+    )
+
+    SELECT sport, COUNT(*) AS count,
+      CAST(COUNT(*) AS REAL) / total_medals * 100 AS percent
+    FROM GoldMedal
+    LEFT JOIN Allmedals
+      ON Allmedals.country = GoldMedal.country
+    WHERE GoldMedal.country = '${country}'
+    GROUP BY sport
+    ${orderby} ;
+  `;
+  return query;
 };
 
 module.exports = {
